@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420236251518",
+    "project_id": "checkin-app-b9b5e",
+    "storage_bucket": "checkin-app-b9b5e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420236251518:android:597ec1cff533397bf5232f",
+        "android_client_info": {
+          "package_name": "com.paytondeveloper.checkintest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZMIdPb-QDkMcgWkm7Kgqf812vt0KtHAo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
