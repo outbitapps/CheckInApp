@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -67,13 +68,14 @@ import kotlin.uuid.Uuid
 @Composable
 @Preview
 fun App() {
+    val navController = rememberNavController()
     val viewModel by CIManager.shared.uiState.collectAsState()
     MaterialTheme {
         if (!viewModel.loading) {
             if (viewModel.user == null) {
                 AuthView()
             } else {
-                MainView()
+                MainView(navController)
             }
         } else {
             Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -84,9 +86,9 @@ fun App() {
 }
 
 @Composable
-fun MainView() {
+fun MainView(navController: NavHostController) {
     val viewModel by CIManager.shared.uiState.collectAsState()
-    val navController = rememberNavController()
+
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomePage(navController)

@@ -1,5 +1,6 @@
 package com.paytondeveloper.checkintest.controllers
 
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.lifecycle.ViewModel
 import com.mmk.kmpnotifier.notification.NotifierManager
 import com.paytondeveloper.checkintest.AppInfo
@@ -150,7 +151,7 @@ public class CIManager: ViewModel() {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun getSessionData(destLat: Double, destLong: Double): CISession {
+    suspend fun getSessionData(destLat: Double, destLong: Double, radius: Double): CISession {
         val currentBatteryLevel = batteryLevel()
         var currentLat = 0.0
         var currentLong = 0.0
@@ -174,13 +175,15 @@ public class CIManager: ViewModel() {
             started = Clock.System.now(),
             lastUpdate = Clock.System.now(),
             latitude = currentLat.toFloat(),
-            longitude = currentLong.toFloat()
+            longitude = currentLong.toFloat(),
+            radius = radius,
+            distance = 0.0
         )
         return session
     }
 
-    suspend fun startSession(family: CIFamily, destLat: Double, destLong: Double) {
-        val session = getSessionData(destLat, destLong)
+    suspend fun startSession(family: CIFamily, destLat: Double, destLong: Double, radius: Double) {
+        val session = getSessionData(destLat, destLong, radius)
         var request = HttpRequestBuilder()
         request.url("$baseURL/family/startsession/${family.id}")
         request.contentType(ContentType.Application.Json)
@@ -191,15 +194,16 @@ public class CIManager: ViewModel() {
 
     suspend fun updateSession(family: CIFamily) {
         val oldSession = family.currentSession!!
-        var newSession = getSessionData(oldSession.destinationLat.toDouble(), oldSession.destinationLong.toDouble())
+        var newSession = getSessionData(oldSession.destinationLat.toDouble(), oldSession.destinationLong.toDouble(), radius = oldSession.radius)
         newSession.id = oldSession.id
         newSession.started = oldSession.started
+        newSession.distance = oldSession.distance
         var request = HttpRequestBuilder()
         request.url("$baseURL/family/updatesession/${family.id}")
         request.contentType(ContentType.Application.Json)
         request.setBody(newSession)
         request.withToken(token)
-        var res = AppInfo.httpClient.post(request)
+        AppInfo.httpClient.post(request)
     }
 
     suspend fun signUp(username: String, email: String, password: String): SQSignUpResponse {

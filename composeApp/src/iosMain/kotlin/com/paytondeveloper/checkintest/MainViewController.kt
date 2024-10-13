@@ -15,7 +15,14 @@ import platform.UIKit.UIDevice
 import platform.UIKit.UIViewController
 
 fun MainViewController(
-    mapUIViewController: (pinLat: Float, pinLong: Float, markerTitle: String) -> UIViewController
+    mapUIViewController: (
+        pinLat: Float,
+        pinLong: Float,
+        destLat: Float,
+        destLong: Float,
+        radius: Double,
+        markerTitle: String
+    ) -> UIViewController
 ) = ComposeUIViewController {
     CIManager.shared
     while (CIManager.shared._uiState.value.loading) {
@@ -36,18 +43,28 @@ fun MainViewController(
     App()
 }
 
-lateinit var mapViewController: (pinLat: Float, pinLong: Float, markerTitle: String) -> UIViewController
+lateinit var mapViewController: (
+    pinLat: Float,
+    pinLong: Float,
+    destLat: Float,
+    destLong: Float,
+    radius: Double,
+    markerTitle: String
+) -> UIViewController
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun MapComponent(
     pinLat: Float,
     pinLong: Float,
+    destLat: Float,
+    destLong: Float,
+    radius: Double,
     markerTitle: String
 ) {
     UIKitViewController(
         factory = {
-            mapViewController(pinLat, pinLong, markerTitle)
+            mapViewController(pinLat, pinLong, destLat, destLong, radius, markerTitle)
         },
         modifier = Modifier.fillMaxHeight(0.5f).fillMaxWidth()
     )

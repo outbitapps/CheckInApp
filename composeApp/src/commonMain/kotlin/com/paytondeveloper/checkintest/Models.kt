@@ -40,7 +40,9 @@ data class CISession(
     val lastUpdate: Instant,
     val batteryLevel: Double,
     @Serializable(with = InstantSerializer::class)
-    var started: Instant
+    var started: Instant,
+    var radius: Double,
+    var distance: Double
 )
 
 @Serializable

@@ -62,7 +62,11 @@ kotlin {
             implementation(libs.stately.common)
             implementation(libs.geolocation)
             implementation(libs.geolocation.mobile)
-
+            implementation(libs.turf)
+            implementation(libs.compass.geocoder)
+            implementation(libs.compass.geocoder.mobile)
+            implementation(libs.compass.autocomplete)
+            implementation(libs.compass.autocomplete.mobile)
         }
     }
 }

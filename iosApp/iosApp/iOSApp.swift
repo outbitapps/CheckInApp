@@ -49,11 +49,15 @@ struct iOSApp: App {
 struct MapsView: View {
     var pinLat: Float
     var pinLong: Float
+    var destLat: Float
+    var destLong: Float
+    var radius: Double
     var markerTitle: String
     
     var body: some View {
             Map {
                 Marker(markerTitle, coordinate: CLLocationCoordinate2D(latitude: Double(pinLat), longitude: Double(pinLong)))
+                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: Double(destLat), longitude: Double(destLong)), radius: CLLocationDistance(Int(radius))))
             }
     }
 }

@@ -6,5 +6,8 @@ import androidx.compose.runtime.Composable
 expect fun MapComponent(
     pinLat: Float,
     pinLong: Float,
+    destLat: Float,
+    destLong: Float,
+    radius: Double,
     markerTitle: String
 )

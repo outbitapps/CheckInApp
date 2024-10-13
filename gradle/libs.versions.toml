@@ -32,6 +32,7 @@ mapsCompose = "6.1.0"
 multiplatformSettings = "1.2.0"
 navigationCompose = "2.7.0-alpha07"
 statelyCommon = "2.1.0"
+turf = "0.3.0"
 workRuntimeKtx = "2.9.1"
 
 [libraries]
@@ -46,6 +47,10 @@ geo = { module = "dev.icerock.moko:geo", version.ref = "geo" }
 geo-compose = { module = "dev.icerock.moko:geo-compose", version.ref = "geo" }
 geolocation = { module = "dev.jordond.compass:geolocation", version.ref = "geolocation" }
 geolocation-mobile = { module = "dev.jordond.compass:geolocation-mobile", version.ref = "geolocation" }
+compass-geocoder = { module = "dev.jordond.compass:geocoder", version.ref = "geolocation" }
+compass-geocoder-mobile = { module = "dev.jordond.compass:geocoder-mobile", version.ref = "geolocation" }
+compass-autocomplete = { module = "dev.jordond.compass:autocomplete", version.ref = "geolocation" }
+compass-autocomplete-mobile = { module = "dev.jordond.compass:autocomplete-mobile", version.ref = "geolocation" }
 kmpnotifier = { module = "io.github.mirzemehdi:kmpnotifier", version.ref = "kmpnotifier" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -78,6 +83,7 @@ maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = 
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 stately-common = { module = "co.touchlab:stately-common", version.ref = "statelyCommon" }
+turf = { module = "io.github.dellisd.spatialk:turf", version.ref = "turf" }
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 
 [plugins]

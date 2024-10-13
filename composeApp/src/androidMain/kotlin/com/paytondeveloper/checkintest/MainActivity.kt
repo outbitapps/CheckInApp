@@ -1,30 +1,29 @@
 package com.paytondeveloper.checkintest
 
+import android.app.ActivityManager
+import android.app.ActivityManager.RunningAppProcessInfo
 import android.content.Context
 import android.content.Context.BATTERY_SERVICE
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
-import android.preference.PreferenceManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.OutOfQuotaPolicy
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -37,7 +36,6 @@ import com.paytondeveloper.checkintest.controllers.CIManager
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 
 
 class MainActivity : ComponentActivity() {
@@ -92,6 +90,9 @@ fun AppAndroidPreview() {
 actual fun MapComponent(
     pinLat: Float,
     pinLong: Float,
+    destLat: Float,
+    destLong: Float,
+    radius: Double,
     markerTitle: String
 ) {
     Box(
@@ -103,6 +104,7 @@ actual fun MapComponent(
         val cameraPositionState = rememberCameraPositionState {
             position = CameraPosition.fromLatLngZoom(coordinates, 17f)
         }
+
         GoogleMap(
             cameraPositionState = cameraPositionState
         ) {
@@ -111,6 +113,12 @@ actual fun MapComponent(
                 title = markerTitle,
                 snippet = "Last Location",
                 flat = true
+            )
+            Circle(
+                center = LatLng(destLat.toDouble(), destLong.toDouble()),
+                radius = radius,
+                fillColor = Color(0.35294f, 0.78431f, 0.98039f, 0.5f),
+                strokeColor = Color(0.35294f, 0.78431f, 0.98039f, 1.0f)
             )
         }
     }
@@ -125,26 +133,39 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
     Worker(appContext, workerParams) {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun doWork(): Result {
-        PrefSingleton.instance.Initialize(applicationContext)
-        CIManager.shared
-        while (CIManager.shared._uiState.value.loading) {
-            //do nothing
-        }
-        var user = CIManager.shared._uiState.value.user
-        CIManager.shared._uiState.value.families.forEach {
-            if (it.currentSession != null && it.currentSession.host.id == user?.id) {
-                GlobalScope.launch {
-                    CIManager.shared.updateSession(it)
+        if (!isAppOnForeground(context = applicationContext)) {
+            PrefSingleton.instance.Initialize(applicationContext)
+            CIManager.shared
+            while (CIManager.shared._uiState.value.loading) {
+                //do nothing
+            }
+            var user = CIManager.shared._uiState.value.user
+            CIManager.shared._uiState.value.families.forEach {
+                if (it.currentSession != null && it.currentSession.host.id == user?.id) {
+                    GlobalScope.launch {
+                        CIManager.shared.updateSession(it)
+                    }
                 }
             }
-        }
-        GlobalScope.launch {
-            CIManager.shared.refreshData()
+            GlobalScope.launch {
+                CIManager.shared.refreshData()
+            }
         }
         val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
             .setInitialDelay(Duration.ofMinutes(2))
             .build()
         WorkManager.getInstance(applicationContext).enqueue(workRequest)
         return Result.success()
+    }
+    private fun isAppOnForeground(context: Context): Boolean {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+        val packageName = context.packageName
+        for (appProcess in appProcesses) {
+            if (appProcess.importance == RunningAppProcessInfo.IMPORTANCE_FOREGROUND && appProcess.processName == packageName) {
+                return true
+            }
+        }
+        return false
     }
 }
