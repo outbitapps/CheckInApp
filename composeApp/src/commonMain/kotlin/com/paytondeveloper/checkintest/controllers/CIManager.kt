@@ -46,7 +46,7 @@ import kotlin.uuid.Uuid
 @OptIn(DelicateCoroutinesApi::class)
 public class CIManager: ViewModel() {
     val log = logging("CIManager")
-    var baseURL = "http://192.168.68.107:3001"
+    var baseURL = "http://192.168.68.107"
     val _uiState = MutableStateFlow(AuthControllerState(user = null))
     val uiState: StateFlow<AuthControllerState> = _uiState.asStateFlow()
     var token: String
@@ -62,6 +62,7 @@ public class CIManager: ViewModel() {
         NotifierManager.addListener(object: NotifierManager.Listener {
             override fun onNewToken(pushToken: String) {
                 super.onNewToken(pushToken)
+                log.d { "pushtoken $pushToken" }
                 if (this@CIManager.token != "") {
                     GlobalScope.launch {
                         this@CIManager.updatePNSToken(pushToken)
@@ -86,6 +87,14 @@ public class CIManager: ViewModel() {
         request.url("$baseURL/family/endsession/${family.id}")
         request.withToken(token)
         AppInfo.httpClient.post(request)
+    }
+
+    suspend fun joinFamily(joinToken: String) {
+        var request = HttpRequestBuilder()
+        request.url("$baseURL/family/join/$joinToken")
+        request.withToken(token)
+        AppInfo.httpClient.post(request)
+        refreshData()
     }
 
     suspend fun refreshData() {
@@ -190,6 +199,15 @@ public class CIManager: ViewModel() {
         request.setBody(session)
         request.withToken(token)
         var res = AppInfo.httpClient.post(request)
+    }
+
+    suspend fun getInviteLink(family: CIFamily): String {
+        var request = HttpRequestBuilder()
+        request.url("$baseURL/family/invite/${family.id}")
+        request.withToken(token)
+        var res = AppInfo.httpClient.post(request)
+        log.d { res.body<String>() }
+        return res.body<String>()
     }
 
     suspend fun updateSession(family: CIFamily) {

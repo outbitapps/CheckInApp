@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,10 +18,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -42,14 +45,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.paytondeveloper.checkintest.CIFamily
 import com.paytondeveloper.checkintest.CISession
+import com.paytondeveloper.checkintest.ClipboardManager
 import com.paytondeveloper.checkintest.MapComponent
 import com.paytondeveloper.checkintest.controllers.CIManager
 import com.paytondeveloper.checkintest.icons.Battery
@@ -60,6 +66,7 @@ import dev.jordond.compass.autocomplete.Autocomplete
 import dev.jordond.compass.autocomplete.mobile
 import dev.jordond.compass.geocoder.Geocoder
 import dev.jordond.compass.geocoder.mobile
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -114,7 +121,7 @@ fun FamilyView(nav: NavController, family: CIFamily) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, DelicateCoroutinesApi::class)
 @Composable
 fun FamilyMainPage(family: CIFamily) {
     var viewingSession by remember { mutableStateOf(false) }
@@ -124,9 +131,10 @@ fun FamilyMainPage(family: CIFamily) {
     var locationLat by remember { mutableStateOf(0.0) }
     var locationLong by remember { mutableStateOf(0.0) }
     var autocompletePlaces = remember { mutableStateListOf<Place>() }
-    Column(modifier = Modifier.padding(12.dp)) {
+    var loadingInviteCode by remember { mutableStateOf(false) }
+    Column(modifier = Modifier.padding(12.dp).scrollable(rememberScrollState(), orientation = Orientation.Vertical).fillMaxHeight()) {
         if (family.currentSession == null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Column() {
                 Text("Nobody is currently hosting a Check In.")
                 TextButton(onClick =  {
                     showingDestinationSheet = true
@@ -135,7 +143,7 @@ fun FamilyMainPage(family: CIFamily) {
                 }
             }
         } else if (family.currentSession != null && family.currentSession.host.id == viewModel.user?.id) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Column() {
                 Text("You are currently hosting a Check In.")
                 TextButton(onClick =  {
                     GlobalScope.launch {
@@ -147,43 +155,75 @@ fun FamilyMainPage(family: CIFamily) {
                 }
             }
         }
-        AnimatedContent(viewingSession) {
-            if (!viewingSession) {
-                family.users.forEach { user ->
-                    Surface(onClick = {
-                        if (family.currentSession != null && family.currentSession.host.id == user.id) {
-                            viewingSession = true
-                        }
-                    }) {
-                        ListItem(
-                            headlineContent = {
-                                Text(user.username, style = MaterialTheme.typography.titleLarge)
-                            },
-                            leadingContent = {
-                                Icon(Icons.Rounded.Person, contentDescription = "Member")
-                            },
-                            trailingContent = {
+        Column(modifier = Modifier.fillMaxSize()) {
+            AnimatedContent(viewingSession) {
+                if (!viewingSession) {
+                    Column {
+                        family.users.forEach { user ->
+                            Surface(onClick = {
                                 if (family.currentSession != null && family.currentSession.host.id == user.id) {
-                                    Box(
-                                        modifier = Modifier.width(24.dp).height(24.dp).background(
-                                            Brush.radialGradient(listOf(
-                                                Color.Green, Color.Transparent))).border(0.5.dp, Color.Green, shape = CircleShape).clip(
-                                            CircleShape
-                                        )
-                                    )
+                                    viewingSession = true
                                 }
-                            },
-                            supportingContent = {
-                                if (family.currentSession != null && family.currentSession.host.id == user.id) {
-                                    Text("Hosting a session • Tap for more details")
+                            }) {
+                                ListItem(
+                                    headlineContent = {
+                                        Text(user.username, style = MaterialTheme.typography.titleLarge)
+                                    },
+                                    leadingContent = {
+                                        Icon(Icons.Rounded.Person, contentDescription = "Member")
+                                    },
+                                    trailingContent = {
+                                        if (family.currentSession != null && family.currentSession.host.id == user.id) {
+                                            Box(
+                                                modifier = Modifier.width(24.dp).height(24.dp).background(
+                                                    Brush.radialGradient(listOf(
+                                                        Color.Green, Color.Transparent))).border(0.5.dp, Color.Green, shape = CircleShape).clip(
+                                                    CircleShape
+                                                )
+                                            )
+                                        }
+                                    },
+                                    supportingContent = {
+                                        if (family.currentSession != null && family.currentSession.host.id == user.id) {
+                                            Text("Hosting a session • Tap for more details")
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        Surface(onClick = {
+                            loadingInviteCode = true
+                            GlobalScope.launch {
+                                val inviteLink = CIManager.shared.getInviteLink(family)
+                                withContext(Dispatchers.Main) {
+                                    ClipboardManager.copyToClipboard(inviteLink)
+                                    loadingInviteCode = false
                                 }
                             }
-                        )
+                        }) {
+                            Box(contentAlignment = Alignment.Center) {
+                                ListItem(
+                                    modifier = Modifier.alpha(if (loadingInviteCode) 0.5f else 1.0f),
+                                    headlineContent = {
+                                        Text("Invite Member", style = TextStyle(color = MaterialTheme.colorScheme.primary))
+                                    },
+                                    supportingContent = {
+                                        Text("Copy an invite link to your clipboard", style = TextStyle(color = MaterialTheme.colorScheme.primary))
+                                    },
+                                    leadingContent = {
+                                        Icon(Icons.Rounded.Add, contentDescription = "fdsf", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                )
+                                if (loadingInviteCode) {
+                                    CircularProgressIndicator()
+                                }
+                            }
+                        }
                     }
-                }
-            } else {
-                MoreDetailsPage(family.currentSession!!) {
-                    viewingSession = false
+                } else {
+                    MoreDetailsPage(family.currentSession!!) {
+                        viewingSession = false
+                    }
                 }
             }
         }
@@ -259,10 +299,7 @@ fun FamilyMainPage(family: CIFamily) {
 
 @Composable
 fun MoreDetailsPage(session: CISession, dismiss: () -> Unit) {
-
-
-    // Custom equivalent format with a fixed Locale
-    Column(modifier = Modifier.scrollable(rememberScrollState(), orientation = Orientation.Vertical)) {
+    Column(modifier = Modifier) {
         TextButton(
             modifier = Modifier.padding(horizontal = 12.dp),
             onClick = {
@@ -321,10 +358,6 @@ fun MoreDetailsPage(session: CISession, dismiss: () -> Unit) {
                 Icon(imageVector = Clock, contentDescription = "Clock")
             }
         )
-
-//        Text("Battery ${family.currentSession.batteryLevel * 100}% - Last Updated ${family.currentSession.lastUpdate.toLocalDateTime(
-//            TimeZone.currentSystemDefault())}\n${family.currentSession.distance}m")
-
     }
 }
 

@@ -2,9 +2,12 @@ package com.paytondeveloper.checkintest
 
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.BATTERY_SERVICE
 import android.content.Intent
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -33,6 +36,7 @@ import com.mmk.kmpnotifier.notification.NotifierManager
 import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfiguration
 import com.mmk.kmpnotifier.permission.permissionUtil
 import com.paytondeveloper.checkintest.controllers.CIManager
+import dev.theolm.rinku.compose.ext.Rinku
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -66,17 +70,28 @@ class MainActivity : ComponentActivity() {
             CIManager.shared.refreshData()
         }
         val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
-            .setInitialDelay(Duration.ofSeconds(30))
+            .setInitialDelay(Duration.ofMinutes(5))
             .build()
         WorkManager.getInstance(applicationContext).enqueue(workRequest)
         setContent {
-            App()
+            Rinku {
+                App()
+            }
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         NotifierManager.onCreateOrOnNewIntent(intent)
+    }
+}
+actual object ClipboardManager {
+    actual fun copyToClipboard(text: String) {
+        val clipboard = PrefSingleton.instance.mContext!!.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+//        val clip = ClipData.newPlainText("Check In join link", text)
+        val clip = ClipData.newPlainText("Join", text)
+        clipboard.setPrimaryClip(clip)
+
     }
 }
 

@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
@@ -43,6 +45,8 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -58,10 +62,12 @@ import checkinapp.composeapp.generated.resources.diversity_1
 import com.paytondeveloper.checkintest.controllers.CIManager
 import com.paytondeveloper.checkintest.views.AuthView
 import com.paytondeveloper.checkintest.views.FamilyView
+import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.imageResource
+import org.lighthousegames.logging.logging
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -87,6 +93,14 @@ fun App() {
 
 @Composable
 fun MainView(navController: NavHostController) {
+    DeepLinkListener { link ->
+        val log = logging()
+        log.d { link.data }
+        val token = link.data.replace("checkinapp:///", "")
+        GlobalScope.launch {
+            CIManager.shared.joinFamily(token)
+        }
+    }
     val viewModel by CIManager.shared.uiState.collectAsState()
 
     NavHost(navController = navController, startDestination = "home") {
@@ -160,6 +174,7 @@ fun HomePage(nav: NavController) {
 fun CreateFamilyView() {
     val viewModel by CIManager.shared.uiState.collectAsState()
     var familyName by remember { mutableStateOf("") }
+    val focus = LocalFocusManager.current
     Column(modifier = Modifier.padding(12.dp),verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
         Column {
             Text("Make a Family", style = MaterialTheme.typography.titleLarge)
@@ -168,7 +183,15 @@ fun CreateFamilyView() {
                 value = familyName,
                 onValueChange = {
                     familyName = it
-                }
+                },
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focus.clearFocus(true)
+                    }
+                )
             )
             Button(modifier = Modifier.padding(8.dp).fillMaxWidth(), onClick = {
                 var group = CIFamily(

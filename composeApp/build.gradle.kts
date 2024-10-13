@@ -26,6 +26,7 @@ kotlin {
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             export(libs.kmpnotifier)
+            export(libs.rinku)
             baseName = "ComposeApp"
             isStatic = true
         }
@@ -67,6 +68,8 @@ kotlin {
             implementation(libs.compass.geocoder.mobile)
             implementation(libs.compass.autocomplete)
             implementation(libs.compass.autocomplete.mobile)
+            api(libs.rinku)
+            implementation(libs.rinku.compose.ext)
         }
     }
 }

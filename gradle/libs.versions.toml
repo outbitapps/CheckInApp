@@ -31,6 +31,8 @@ logging = "1.3.0"
 mapsCompose = "6.1.0"
 multiplatformSettings = "1.2.0"
 navigationCompose = "2.7.0-alpha07"
+rinku = "1.1.0"
+rinkuComposeExt = "1.1.0"
 statelyCommon = "2.1.0"
 turf = "0.3.0"
 workRuntimeKtx = "2.9.1"
@@ -82,6 +84,8 @@ logging = { module = "org.lighthousegames:logging", version.ref = "logging" }
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
 multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
+rinku-compose-ext = { module = "dev.theolm:rinku-compose-ext", version.ref = "rinkuComposeExt" }
 stately-common = { module = "co.touchlab:stately-common", version.ref = "statelyCommon" }
 turf = { module = "io.github.dellisd.spatialk:turf", version.ref = "turf" }
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }

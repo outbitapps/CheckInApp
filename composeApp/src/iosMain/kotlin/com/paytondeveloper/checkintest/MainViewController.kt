@@ -13,6 +13,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import platform.UIKit.UIDevice
 import platform.UIKit.UIViewController
+import platform.UIKit.UIPasteboard
 
 fun MainViewController(
     mapUIViewController: (
@@ -68,6 +69,13 @@ actual fun MapComponent(
         },
         modifier = Modifier.fillMaxHeight(0.5f).fillMaxWidth()
     )
+}
+
+
+actual object ClipboardManager {
+    actual fun copyToClipboard(text: String) {
+        UIPasteboard.generalPasteboard.string = text
+    }
 }
 
 

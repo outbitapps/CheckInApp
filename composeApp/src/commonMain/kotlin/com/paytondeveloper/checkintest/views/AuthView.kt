@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.onFocusedBoundsChanged
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
@@ -49,7 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -80,6 +83,8 @@ fun AuthView() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EmailAuthComponent(modifier: Modifier = Modifier) {
+    val focusManager = LocalFocusManager.current
+    focusManager.clearFocus()
     var viewState by remember { mutableStateOf<EmailAuthView>(EmailAuthView.none) }
     var loading by remember { mutableStateOf(false) }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -152,7 +157,13 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                     enabled = !loading,
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Email,
-                                        autoCorrect = false
+                                        autoCorrect = false,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = {
+                                            focusManager.clearFocus(true)
+                                        }
                                     )
 
                                 )
@@ -168,7 +179,13 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                     enabled = !loading,
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Password,
-                                        autoCorrect = false
+                                        autoCorrect = false,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = {
+                                            focusManager.clearFocus(true)
+                                        }
                                     )
                                 )
                             }
@@ -210,6 +227,15 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                     label = { Text("Username") },
                                     shape = RoundedCornerShape(8.dp),
                                     enabled = !loading,
+                                    keyboardOptions = KeyboardOptions(
+
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = {
+                                            focusManager.clearFocus(true)
+                                        }
+                                    )
                                 )
                                 OutlinedTextField(
                                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -222,7 +248,13 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                     enabled = !loading,
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Email,
-                                        autoCorrect = false
+                                        autoCorrect = false,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = {
+                                            focusManager.clearFocus(true)
+                                        }
                                     )
                                 )
                                 OutlinedTextField(
@@ -237,7 +269,14 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                     enabled = !loading,
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Password,
-                                        autoCorrect = false
+                                        autoCorrect = false,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus(true)
+                                        },
+
                                     )
                                 )
                             }

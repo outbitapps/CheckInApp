@@ -30,6 +30,20 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         NotifierManager.shared.onApplicationDidReceiveRemoteNotification(userInfo: userInfo)
               return UIBackgroundFetchResult.newData
     }
+    let rinku = RinkuIos.init(deepLinkFilter: nil, deepLinkMapper: nil)
+        func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+            print(url)
+            rinku.onDeepLinkReceived(url: url.absoluteString)
+            return true
+        }
+        
+        func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+            if userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL {
+                let urlString = url.absoluteString
+                rinku.onDeepLinkReceived(userActivity: userActivity)
+            }
+            return true
+        }
     
 }
 
@@ -39,7 +53,11 @@ struct iOSApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().onOpenURL { url in
+                let rinku = RinkuIos.init(deepLinkFilter: nil, deepLinkMapper: nil)
+                print(url)
+                rinku.onDeepLinkReceived(url: url.absoluteString)
+            }
         }
     }
 }
@@ -57,7 +75,7 @@ struct MapsView: View {
     var body: some View {
             Map {
                 Marker(markerTitle, coordinate: CLLocationCoordinate2D(latitude: Double(pinLat), longitude: Double(pinLong)))
-                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: Double(destLat), longitude: Double(destLong)), radius: CLLocationDistance(Int(radius))))
+                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: Double(destLat), longitude: Double(destLong)), radius: CLLocationDistance(Int(radius)))).foregroundStyle(Color.blue.opacity(0.5))
             }
     }
 }
