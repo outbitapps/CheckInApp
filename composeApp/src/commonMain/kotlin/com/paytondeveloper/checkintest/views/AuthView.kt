@@ -53,10 +53,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import dev.gitlive.firebase.Firebase
-import dev.gitlive.firebase.auth.auth
+import com.paytondeveloper.checkintest.AppInfo
+import com.paytondeveloper.checkintest.controllers.CIManager
+import com.paytondeveloper.checkintest.controllers.SQSignUpResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -174,7 +177,13 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                 Button(modifier = Modifier.padding(8.dp).fillMaxWidth(), shape = RoundedCornerShape(8.dp), onClick = {
                                     loading = true
                                     GlobalScope.launch {
-                                        Firebase.auth.signInWithEmailAndPassword(email, password)
+                                        val res = CIManager.shared.signIn(email, password)
+                                        if (res == SQSignUpResponse.SUCCESS) {
+
+                                        } else {
+                                            errorMessage = res.message
+                                        }
+                                        loading = false
                                     }
                                 },enabled = !loading) {
                                     Text("Sign In")
@@ -237,7 +246,14 @@ fun EmailAuthComponent(modifier: Modifier = Modifier) {
                                 Button(modifier = Modifier.padding(8.dp).fillMaxWidth(), shape = RoundedCornerShape(8.dp), onClick = {
                                     loading = true
                                     GlobalScope.launch {
-                                        Firebase.auth.signInWithEmailAndPassword(email, password)
+                                        val res = CIManager.shared.signUp(username, email, password)
+                                        if (res == SQSignUpResponse.SUCCESS) {
+                                            withContext(Dispatchers.Main) {
+                                            }
+                                        } else {
+                                            errorMessage = res.message
+                                        }
+                                        loading = false
                                     }
                                 },enabled = !loading) {
                                     Text("Sign Up")

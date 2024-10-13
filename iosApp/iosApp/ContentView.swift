@@ -4,7 +4,11 @@ import ComposeApp
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
-        MainViewControllerKt.MainViewController()
+        MainViewControllerKt.MainViewController(
+            mapUIViewController: { (pinLat: KotlinFloat, pinLong: KotlinFloat, markerTitle: String) -> UIViewController in
+                return UIHostingController(rootView: MapsView(pinLat: pinLat.floatValue, pinLong: pinLong.floatValue, markerTitle: markerTitle))
+                        }
+        )
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}

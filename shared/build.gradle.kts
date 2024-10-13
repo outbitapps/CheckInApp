@@ -23,6 +23,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             // put your Multiplatform dependencies here
+            implementation(libs.multiplatform.settings)
+
         }
     }
 }
@@ -38,3 +40,4 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
 }
+

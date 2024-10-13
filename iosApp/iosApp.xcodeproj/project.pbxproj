@@ -16,6 +16,7 @@
 		E9B7DE482CB4BF650049EC05 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = E9B7DE472CB4BF650049EC05 /* FirebaseFunctions */; };
 		E9B7DE4A2CB4BF650049EC05 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = E9B7DE492CB4BF650049EC05 /* FirebaseStorage */; };
 		E9B7DE4C2CB4BF940049EC05 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E9B7DE4B2CB4BF940049EC05 /* GoogleService-Info.plist */; };
+		E9DE94B72CBABF82002C5F68 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = E9DE94B62CBABF82002C5F68 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 			files = (
 				E9B7DE482CB4BF650049EC05 /* FirebaseFunctions in Frameworks */,
 				E9B7DE4A2CB4BF650049EC05 /* FirebaseStorage in Frameworks */,
+				E9DE94B72CBABF82002C5F68 /* FirebaseMessaging in Frameworks */,
 				E9B7DE442CB4BF650049EC05 /* FirebaseAuth in Frameworks */,
 				E9B7DE462CB4BF650049EC05 /* FirebaseFirestore in Frameworks */,
 			);
@@ -120,6 +122,7 @@
 				E9B7DE452CB4BF650049EC05 /* FirebaseFirestore */,
 				E9B7DE472CB4BF650049EC05 /* FirebaseFunctions */,
 				E9B7DE492CB4BF650049EC05 /* FirebaseStorage */,
+				E9DE94B62CBABF82002C5F68 /* FirebaseMessaging */,
 			);
 			productName = iosApp;
 			productReference = 7555FF7B242A565900829871 /* CheckInApp.app */;
@@ -336,18 +339,19 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = BR926NY9FS;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)\n$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
 				);
 				INFOPLIST_FILE = iosApp/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				OTHER_LDFLAGS = "-lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = "${BUNDLE_ID}${TEAM_ID}";
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -363,18 +367,19 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = BR926NY9FS;
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)\n$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
 				);
 				INFOPLIST_FILE = iosApp/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				OTHER_LDFLAGS = "-lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = "${BUNDLE_ID}${TEAM_ID}";
 				PRODUCT_NAME = "${APP_NAME}";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -437,6 +442,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E9B7DE422CB4BF650049EC05 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		E9DE94B62CBABF82002C5F68 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9B7DE422CB4BF650049EC05 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
