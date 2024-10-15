@@ -1,12 +1,17 @@
 package com.paytondeveloper.checkintest
 
+import android.Manifest
 import android.app.ActivityManager
 import android.app.ActivityManager.RunningAppProcessInfo
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.BATTERY_SERVICE
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import android.hardware.biometrics.BiometricPrompt
@@ -14,6 +19,7 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import android.os.CancellationSignal
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -23,6 +29,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
@@ -60,6 +69,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         PrefSingleton.instance.Initialize(applicationContext)
+        makeChannel(context = applicationContext, name = "Check In started", desc = "Get notified whenever someone starts a Check In", id = "cistarted")
+        makeChannel(context = applicationContext, name = "Check In manually ended", desc = "Get notified whenever someone manually ends a Check In", id = "ciended")
+        makeChannel(context = applicationContext, name = "Check In automatically ended", desc = "Get notified whenever a Check In ends as the host reaches their destination", id = "ciended_dest")
+        makeChannel(context = applicationContext, name = "Check In - no progress", desc = "Get notified whenever somebody is not making progress toward their destination", id = "cinoprogress", importance = NotificationManager.IMPORTANCE_HIGH)
+        val name = "Background updates"
+        val descriptionText = "Notifications that show whenever Check In is updating in the background"
+        val importance = NotificationManager.IMPORTANCE_LOW
+        val channel = NotificationChannel("BGWORK", name, importance).apply {
+            description = descriptionText
+        }
+        // Register the channel with the system.
+        val notificationManager: NotificationManager =
+            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
         NotifierManager.onCreateOrOnNewIntent(intent)
         NotifierManager.initialize(NotificationPlatformConfiguration.Android(
             notificationIconResId = R.drawable.ic_launcher_foreground,
@@ -100,6 +123,18 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         NotifierManager.onCreateOrOnNewIntent(intent)
     }
+}
+
+fun makeChannel(context: Context, name: String, desc: String, id: String, importance: Int = NotificationManager.IMPORTANCE_DEFAULT) {
+    val name = name
+    val descriptionText = desc
+    val importance = NotificationManager.IMPORTANCE_DEFAULT
+    val mChannel = NotificationChannel(id, name, importance)
+    mChannel.description = descriptionText
+    // Register the channel with the system. You can't change the importance
+    // or other notification behaviors after this.
+    val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.createNotificationChannel(mChannel)
 }
 actual object ClipboardManager {
     actual fun copyToClipboard(text: String) {
@@ -193,7 +228,8 @@ fun longitudeFromCenterAndRadius(center: Double, latitude: Double, radius: Doubl
 
 actual fun batteryLevel(): Double {
     val batService: BatteryManager = PrefSingleton.instance.mContext!!.getSystemService(BATTERY_SERVICE) as BatteryManager
-    return (batService.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) / 100).toDouble()
+    Log.d("batterylevel", "${batService.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)}")
+    return (batService.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY).toDouble() / 100)
 }
 
 class UploadWorker(appContext: Context, workerParams: WorkerParameters):
@@ -201,28 +237,66 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
     @RequiresApi(Build.VERSION_CODES.O)
     override fun doWork(): Result {
         if (!isAppOnForeground(context = applicationContext) && !isWorkScheduled("SessionUpdateWorker")) {
+
             PrefSingleton.instance.Initialize(applicationContext)
             CIManager.shared
             while (CIManager.shared._uiState.value.loading) {
                 //do nothing
             }
             var user = CIManager.shared._uiState.value.user
-            CIManager.shared._uiState.value.families.forEach {
-                if (it.currentSession != null && it.currentSession.host.id == user?.id) {
-                    GlobalScope.launch {
-                        CIManager.shared.updateSession(it)
+            if (user != null && CIManager.shared._uiState.value.families.any { it.currentSession != null && it.currentSession!!.host.id == user.id }) {
+                notifyUser()
+                CIManager.shared._uiState.value.families.forEach {
+                    if (it.currentSession != null && it.currentSession.host.id == user?.id) {
+                        GlobalScope.launch {
+                            CIManager.shared.updateSession(it)
+                        }
                     }
                 }
+                GlobalScope.launch {
+                    CIManager.shared.refreshData()
+                }
             }
-            GlobalScope.launch {
-                CIManager.shared.refreshData()
-            }
+
         }
         val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
             .setInitialDelay(Duration.ofMinutes(2))
             .build()
         WorkManager.getInstance(applicationContext).enqueueUniqueWork("SessionUpdateWorker", ExistingWorkPolicy.REPLACE, workRequest)
+        removeNotification()
         return Result.success()
+    }
+    private fun notifyUser() {
+        var builder = NotificationCompat.Builder(applicationContext, "BGWORK")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Check In session")
+            .setContentText("Updating location...")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+
+        with(NotificationManagerCompat.from(applicationContext)) {
+            if (ActivityCompat.checkSelfPermission(
+                    applicationContext,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                // TODO: Consider calling
+                // ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                // public fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>,
+                //                                        grantResults: IntArray)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+
+                return@with
+            }
+            // notificationId is a unique int for each notification that you must define.
+            notify(0, builder.build())
+        }
+    }
+    private fun removeNotification() {
+        with(NotificationManagerCompat.from(applicationContext)) {
+            cancel(0)
+        }
     }
     private fun isAppOnForeground(context: Context): Boolean {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager

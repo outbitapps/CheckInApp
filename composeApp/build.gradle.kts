@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.maps.compose)
             implementation(libs.androidx.work.runtime.ktx)
+//                implementation(libs.androidx.core.ktx.v220)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

@@ -136,6 +136,7 @@ public class CIManager: ViewModel() {
     @OptIn(ExperimentalUuidApi::class)
     suspend fun getSessionData(destLat: Double, destLong: Double, radius: Double, placeName: String?): CISession {
         val currentBatteryLevel = batteryLevel()
+        log.d("batterylevel", {currentBatteryLevel})
         var currentLat = 0.0
         var currentLong = 0.0
         var result = geolocator.current(priority = Priority.HighAccuracy)
