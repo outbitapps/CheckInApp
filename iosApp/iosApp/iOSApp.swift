@@ -25,6 +25,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
   func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         Messaging.messaging().apnsToken = deviceToken
+      
   }
     func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any]) async -> UIBackgroundFetchResult {
         NotifierManager.shared.onApplicationDidReceiveRemoteNotification(userInfo: userInfo)
@@ -65,17 +66,50 @@ struct iOSApp: App {
 
 
 struct MapsView: View {
-    var pinLat: Float
-    var pinLong: Float
+    var markers: [CIMapMarker]
     var destLat: Float
     var destLong: Float
     var radius: Double
-    var markerTitle: String
     
     var body: some View {
             Map {
-                Marker(markerTitle, coordinate: CLLocationCoordinate2D(latitude: Double(pinLat), longitude: Double(pinLong)))
-                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: Double(destLat), longitude: Double(destLong)), radius: CLLocationDistance(Int(radius)))).foregroundStyle(Color.blue.opacity(0.5))
+//                Marker(markerTitle, coordinate: CLLocationCoordinate2D(latitude: Double(pinLat), longitude: Double(pinLong)))
+                ForEach(markers, id: \.self) { marker in
+//                    Marker(marker.title, monogram: Text(marker.subtitle), coordinate: )
+                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: marker.lat, longitude: marker.long_)) {
+                        MarkerAnnotationView(title: marker.title, subtitle: marker.subtitle)
+                    }
+                }
+                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: Double(destLat), longitude: Double(destLong)), radius: CLLocationDistance(Int(radius)))).foregroundStyle(Color.blue.opacity(0.5)).stroke(Color.blue)
             }
+    }
+}
+
+struct MarkerAnnotationView: View {
+    var title: String
+    var subtitle: String
+    @State var showingContent = false
+    var body: some View {
+//        if !showingContent {
+//            VStack {
+//                
+//            }.frame(width: 200, height: 200).onTapGesture {
+//                withAnimation(.spring) {
+//                    showingContent = true
+//                }
+//            }
+//        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 15.0).foregroundStyle(.thinMaterial)
+                VStack(alignment: .leading) {
+                    Text(title).fontWeight(.semibold)
+                    Text(subtitle)
+                }.multilineTextAlignment(.leading).font(.caption2).padding(5)
+            }.onTapGesture {
+                withAnimation(.spring) {
+                    showingContent = false
+                }
+            }.frame(width: 100)
+//        }
     }
 }

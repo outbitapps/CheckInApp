@@ -14,15 +14,18 @@ import kotlinx.coroutines.launch
 import platform.UIKit.UIDevice
 import platform.UIKit.UIViewController
 import platform.UIKit.UIPasteboard
+import com.mmk.kmpnotifier.notification.NotifierManager
+import platform.LocalAuthentication.LAContext
+import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthenticationWithBiometrics
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 fun MainViewController(
     mapUIViewController: (
-        pinLat: Float,
-        pinLong: Float,
+        markers: List<CIMapMarker>,
         destLat: Float,
         destLong: Float,
         radius: Double,
-        markerTitle: String
     ) -> UIViewController
 ) = ComposeUIViewController {
     CIManager.shared
@@ -34,38 +37,37 @@ fun MainViewController(
         if (it.currentSession != null && it.currentSession.host.id == user?.id) {
             GlobalScope.launch {
                 CIManager.shared.updateSession(it)
+
             }
         }
     }
+
     GlobalScope.launch {
         CIManager.shared.refreshData()
+
     }
     mapViewController = mapUIViewController
     App()
 }
 
 lateinit var mapViewController: (
-    pinLat: Float,
-    pinLong: Float,
+    markers: List<CIMapMarker>,
     destLat: Float,
     destLong: Float,
     radius: Double,
-    markerTitle: String
 ) -> UIViewController
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun MapComponent(
-    pinLat: Float,
-    pinLong: Float,
+    markers: List<CIMapMarker>,
     destLat: Float,
     destLong: Float,
     radius: Double,
-    markerTitle: String
 ) {
     UIKitViewController(
         factory = {
-            mapViewController(pinLat, pinLong, destLat, destLong, radius, markerTitle)
+            mapViewController(markers, destLat, destLong, radius)
         },
         modifier = Modifier.fillMaxHeight(0.5f).fillMaxWidth()
     )
@@ -81,4 +83,17 @@ actual object ClipboardManager {
 
 actual fun batteryLevel(): Double {
     return UIDevice.currentDevice.batteryLevel.toDouble()
+}
+
+@OptIn(ExperimentalForeignApi::class)
+actual suspend fun bioAuthenticate(): Boolean = suspendCoroutine { continuation ->
+    val context = LAContext()
+    if (context.canEvaluatePolicy(LAPolicyDeviceOwnerAuthenticationWithBiometrics, null)) {
+        context.evaluatePolicy(LAPolicyDeviceOwnerAuthenticationWithBiometrics, "Verify your identity") { success, _ ->
+            continuation.resume(success)
+        }
+    } else {
+        // Biometric authentication not available
+        continuation.resume(false)
+    }
 }

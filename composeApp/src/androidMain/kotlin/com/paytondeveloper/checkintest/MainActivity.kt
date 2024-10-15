@@ -7,10 +7,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.BATTERY_SERVICE
 import android.content.Intent
-import android.net.Uri
+import android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+import android.hardware.biometrics.BiometricPrompt
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
@@ -20,12 +23,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
@@ -37,9 +44,15 @@ import com.mmk.kmpnotifier.notification.configuration.NotificationPlatformConfig
 import com.mmk.kmpnotifier.permission.permissionUtil
 import com.paytondeveloper.checkintest.controllers.CIManager
 import dev.theolm.rinku.compose.ext.Rinku
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.InternalCoroutinesApi
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.time.Duration
+import java.util.concurrent.ExecutionException
+import kotlin.coroutines.resume
 
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +70,9 @@ class MainActivity : ComponentActivity() {
         CIManager.shared
         while (CIManager.shared._uiState.value.loading) {
             //do nothing
+        }
+        GlobalScope.launch {
+            NotifierManager.getPushNotifier().getToken()
         }
         var user = CIManager.shared._uiState.value.user
         CIManager.shared._uiState.value.families.forEach {
@@ -103,32 +119,56 @@ fun AppAndroidPreview() {
 
 @Composable
 actual fun MapComponent(
-    pinLat: Float,
-    pinLong: Float,
+    markers: List<CIMapMarker>,
     destLat: Float,
     destLong: Float,
     radius: Double,
-    markerTitle: String
 ) {
     Box(
         modifier = Modifier.fillMaxHeight(0.5f)
     ) {
-        val coordinates = LatLng(pinLat.toDouble(), pinLong.toDouble())
-        val markerState = rememberMarkerState(position = coordinates)
+
+        var firstCoords = markers.first()
+        var lastCoords = markers.last()
+
+        var midLat = (firstCoords.lat + lastCoords.lat) / 2
+        var midLong = (firstCoords.long + lastCoords.long) / 2
 
         val cameraPositionState = rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(coordinates, 17f)
+            position = CameraPosition.fromLatLngZoom(LatLng(midLat, midLong), 14f)
         }
 
+
         GoogleMap(
-            cameraPositionState = cameraPositionState
+            cameraPositionState = cameraPositionState,
+            onMapLoaded = {
+                val bounds: LatLngBounds
+                    val builder = LatLngBounds.Builder()
+                    for (marker in markers) {
+                        builder.include(LatLng(marker.lat, marker.long))
+                    }
+                    bounds = builder.build()
+
+                val cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, 100)
+                GlobalScope.launch {
+                    withContext(Dispatchers.Main) {
+                            if (markers.count() > 1) {
+                                cameraPositionState.animate(cameraUpdate, 500)
+                            }
+                    }
+                }
+            }
         ) {
-            Marker(
-                state = markerState,
-                title = markerTitle,
-                snippet = "Last Location",
-                flat = true
-            )
+            markers.forEach {
+                val coordinates = LatLng(it.lat, it.long)
+                val markerState = rememberMarkerState(position = coordinates)
+                Marker(
+                    state = markerState,
+                    title = it.title,
+                    snippet = it.subtitle,
+                    flat = true
+                )
+            }
             Circle(
                 center = LatLng(destLat.toDouble(), destLong.toDouble()),
                 radius = radius,
@@ -137,6 +177,18 @@ actual fun MapComponent(
             )
         }
     }
+}
+
+const val r_earth = 6378137
+
+fun latitudeFromCenterAndRadius(center: Double, radius: Double): Double {
+//    new_latitude  = latitude  + (dy / r_earth) * (180 / pi);
+//    new_longitude = longitude + (dx / r_earth) * (180 / pi) / cos(latitude * pi/180);
+    return center + (radius / r_earth) * (180 / Math.PI)
+}
+
+fun longitudeFromCenterAndRadius(center: Double, latitude: Double, radius: Double): Double {
+    return center + (radius / r_earth) * (180 / Math.PI) / Math.cos(latitude * (Math.PI/180))
 }
 
 actual fun batteryLevel(): Double {
@@ -148,7 +200,7 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
     Worker(appContext, workerParams) {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun doWork(): Result {
-        if (!isAppOnForeground(context = applicationContext)) {
+        if (!isAppOnForeground(context = applicationContext) && !isWorkScheduled("SessionUpdateWorker")) {
             PrefSingleton.instance.Initialize(applicationContext)
             CIManager.shared
             while (CIManager.shared._uiState.value.loading) {
@@ -169,7 +221,7 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
         val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
             .setInitialDelay(Duration.ofMinutes(2))
             .build()
-        WorkManager.getInstance(applicationContext).enqueue(workRequest)
+        WorkManager.getInstance(applicationContext).enqueueUniqueWork("SessionUpdateWorker", ExistingWorkPolicy.REPLACE, workRequest)
         return Result.success()
     }
     private fun isAppOnForeground(context: Context): Boolean {
@@ -183,4 +235,59 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
         }
         return false
     }
+    private fun isWorkScheduled(tag: String): Boolean {
+        val instance = WorkManager.getInstance()
+        val statuses = instance.getWorkInfosByTag(tag)
+        try {
+            var running = false
+            val workInfoList = statuses.get()
+            for (workInfo in workInfoList) {
+                val state: WorkInfo.State = workInfo.state
+                running = (state == WorkInfo.State.RUNNING) or (state == WorkInfo.State.ENQUEUED)
+            }
+            return running
+        } catch (e: ExecutionException) {
+            e.printStackTrace()
+            return false
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+            return false
+        }
+    }
 }
+
+
+    @OptIn(InternalCoroutinesApi::class)
+    actual suspend fun bioAuthenticate(): Boolean = suspendCancellableCoroutine { continuation ->
+//        val biometricPrompt = BiometricPrompt(
+//            context,
+//            { _, result ->
+//                continuation.resume(result == BiometricPrompt.AuthenticationResult.AUTHENTICATED)
+//            }
+//        )
+        val promptInfo = BiometricPrompt.Builder(PrefSingleton.instance.mContext!!)
+            .setTitle("Verify")
+            .setSubtitle("Verify your identity")
+            .setAllowedAuthenticators(BIOMETRIC_WEAK or DEVICE_CREDENTIAL)
+            .build()
+        promptInfo.authenticate(
+            CancellationSignal(), PrefSingleton.instance.mContext!!.mainExecutor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int,
+                                                   errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+//                    continuation.resume(false)
+                }
+
+                override fun onAuthenticationSucceeded(
+                    result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    continuation.resume(true)
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    continuation.resume(false)
+                }
+            })
+    }

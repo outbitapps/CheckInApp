@@ -11,11 +11,11 @@
 		058557D9273AAEEB004C7B11 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 058557D8273AAEEB004C7B11 /* Preview Assets.xcassets */; };
 		2152FB042600AC8F00CF470E /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2152FB032600AC8F00CF470E /* iOSApp.swift */; };
 		7555FF83242A565900829871 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF82242A565900829871 /* ContentView.swift */; };
+		E98D5FEB2CBD547200337D43 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E98D5FEA2CBD547200337D43 /* GoogleService-Info.plist */; };
 		E9B7DE442CB4BF650049EC05 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = E9B7DE432CB4BF650049EC05 /* FirebaseAuth */; };
 		E9B7DE462CB4BF650049EC05 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E9B7DE452CB4BF650049EC05 /* FirebaseFirestore */; };
 		E9B7DE482CB4BF650049EC05 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = E9B7DE472CB4BF650049EC05 /* FirebaseFunctions */; };
 		E9B7DE4A2CB4BF650049EC05 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = E9B7DE492CB4BF650049EC05 /* FirebaseStorage */; };
-		E9B7DE4C2CB4BF940049EC05 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E9B7DE4B2CB4BF940049EC05 /* GoogleService-Info.plist */; };
 		E9DE94B72CBABF82002C5F68 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = E9DE94B62CBABF82002C5F68 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
@@ -27,7 +27,8 @@
 		7555FF82242A565900829871 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7555FF8C242A565B00829871 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AB3632DC29227652001CCB65 /* Config.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
-		E9B7DE4B2CB4BF940049EC05 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		E98D5FEA2CBD547200337D43 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		E9A054EB2CBC8DF5000585C7 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,7 +83,8 @@
 		7555FF7D242A565900829871 /* iosApp */ = {
 			isa = PBXGroup;
 			children = (
-				E9B7DE4B2CB4BF940049EC05 /* GoogleService-Info.plist */,
+				E98D5FEA2CBD547200337D43 /* GoogleService-Info.plist */,
+				E9A054EB2CBC8DF5000585C7 /* iosApp.entitlements */,
 				058557BA273AAA24004C7B11 /* Assets.xcassets */,
 				7555FF82242A565900829871 /* ContentView.swift */,
 				7555FF8C242A565B00829871 /* Info.plist */,
@@ -171,7 +173,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				058557D9273AAEEB004C7B11 /* Preview Assets.xcassets in Resources */,
-				E9B7DE4C2CB4BF940049EC05 /* GoogleService-Info.plist in Resources */,
+				E98D5FEB2CBD547200337D43 /* GoogleService-Info.plist in Resources */,
 				058557BB273AAA24004C7B11 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -336,6 +338,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
@@ -364,6 +367,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iosApp/iosApp.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";

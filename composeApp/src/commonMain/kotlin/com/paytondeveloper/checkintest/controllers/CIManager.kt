@@ -1,6 +1,5 @@
 package com.paytondeveloper.checkintest.controllers
 
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.lifecycle.ViewModel
 import com.mmk.kmpnotifier.notification.NotifierManager
 import com.paytondeveloper.checkintest.AppInfo
@@ -8,14 +7,11 @@ import com.paytondeveloper.checkintest.CIFamily
 import com.paytondeveloper.checkintest.CISession
 import com.paytondeveloper.checkintest.OBUser
 import com.paytondeveloper.checkintest.batteryLevel
-import com.russhwolf.settings.get
-import com.russhwolf.settings.set
 import dev.jordond.compass.Priority
 import dev.jordond.compass.geolocation.Geolocator
 import dev.jordond.compass.geolocation.GeolocatorResult
 import dev.jordond.compass.geolocation.mobile
 import io.ktor.client.call.body
-import io.ktor.client.request.HttpRequest
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -33,9 +29,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.lighthousegames.logging.logging
 import kotlin.io.encoding.Base64
@@ -59,19 +53,7 @@ public class CIManager: ViewModel() {
     var geolocator = Geolocator.mobile()
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     init {
-        NotifierManager.addListener(object: NotifierManager.Listener {
-            override fun onNewToken(pushToken: String) {
-                super.onNewToken(pushToken)
-                log.d { "pushtoken $pushToken" }
-                if (this@CIManager.token != "") {
-                    GlobalScope.launch {
-                        this@CIManager.updatePNSToken(pushToken)
-                    }
-                } else {
-                    AppInfo.settings["pushToken"] = pushToken
-                }
-            }
-        })
+
         GlobalScope.launch {
             try {
                 refreshData()
@@ -108,21 +90,11 @@ public class CIManager: ViewModel() {
 //            .addHeader("Authorization", "Bearer ${_uiState.value.authToken}")
 //            .build()
         var request = HttpRequestBuilder()
-        request.url("$baseURL/users/fetch-user")
+        request.url("$baseURL/users/get")
         request.withToken(token)
 
         try {
             var response = AppInfo.httpClient.get(request)
-//            response.body?.let {
-//                val user = json.decodeFromStream<SQUser>(response.body!!.byteStream())
-//                Log.d("refreshdata", "user ${user.username}")
-//                _uiState.update {
-//                    _uiState.value.copy(
-//                        currentUser = user,
-//                        loaded = true
-//                    )
-//                }
-//            }
             val user = response.body<OBUser>()
             var families: MutableList<CIFamily> = mutableListOf()
             user.familyIDs.forEach {
@@ -138,8 +110,10 @@ public class CIManager: ViewModel() {
                 )
             }
             log.d { AppInfo.settings.getStringOrNull("pushtoken") }
-            if (uiState.value.user!!.apnsToken == null && AppInfo.settings.getStringOrNull("pushtoken") != null) {
-                updatePNSToken(AppInfo.settings.getStringOrNull("pushtoken")!!)
+            val pushToken = NotifierManager.getPushNotifier().getToken()
+            log.d { "pushtoken $pushToken" }
+            pushToken?.let {
+                updatePNSToken(pushToken)
             }
         } catch (e:Exception) {
             log.e(msg = {"error refresing: ${e}"})
@@ -160,7 +134,7 @@ public class CIManager: ViewModel() {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun getSessionData(destLat: Double, destLong: Double, radius: Double): CISession {
+    suspend fun getSessionData(destLat: Double, destLong: Double, radius: Double, placeName: String?): CISession {
         val currentBatteryLevel = batteryLevel()
         var currentLat = 0.0
         var currentLong = 0.0
@@ -186,19 +160,26 @@ public class CIManager: ViewModel() {
             latitude = currentLat.toFloat(),
             longitude = currentLong.toFloat(),
             radius = radius,
-            distance = 0.0
+            distance = 0.0,
+            placeName = placeName
         )
         return session
     }
 
-    suspend fun startSession(family: CIFamily, destLat: Double, destLong: Double, radius: Double) {
-        val session = getSessionData(destLat, destLong, radius)
+    suspend fun startSession(family: CIFamily, destLat: Double, destLong: Double, radius: Double, placeName: String?) {
+        val session = getSessionData(destLat, destLong, radius, placeName = placeName)
         var request = HttpRequestBuilder()
         request.url("$baseURL/family/startsession/${family.id}")
         request.contentType(ContentType.Application.Json)
         request.setBody(session)
         request.withToken(token)
-        var res = AppInfo.httpClient.post(request)
+        log.d { "starting session" }
+        try {
+            var res = AppInfo.httpClient.post(request)
+            log.d { res.status }
+        } catch (e: Exception){
+            log.e { "error starting session: $e" }
+        }
     }
 
     suspend fun getInviteLink(family: CIFamily): String {
@@ -212,7 +193,7 @@ public class CIManager: ViewModel() {
 
     suspend fun updateSession(family: CIFamily) {
         val oldSession = family.currentSession!!
-        var newSession = getSessionData(oldSession.destinationLat.toDouble(), oldSession.destinationLong.toDouble(), radius = oldSession.radius)
+        var newSession = getSessionData(oldSession.destinationLat.toDouble(), oldSession.destinationLong.toDouble(), radius = oldSession.radius, placeName = oldSession.placeName)
         newSession.id = oldSession.id
         newSession.started = oldSession.started
         newSession.distance = oldSession.distance
@@ -221,7 +202,11 @@ public class CIManager: ViewModel() {
         request.contentType(ContentType.Application.Json)
         request.setBody(newSession)
         request.withToken(token)
-        AppInfo.httpClient.post(request)
+        try {
+            AppInfo.httpClient.post(request)
+        } catch (e: Exception) {
+            log.e { "error updating session: $e" }
+        }
     }
 
     suspend fun signUp(username: String, email: String, password: String): SQSignUpResponse {
@@ -237,8 +222,12 @@ public class CIManager: ViewModel() {
         request.setBody(UserSignup(email, username, password))
 
         log.d("signup", { "${request.body}" })
-        var response = AppInfo.httpClient.post(request)
+
         try {
+            var response = AppInfo.httpClient.post(request)
+            if (response.status == HttpStatusCode.Conflict) {
+                return SQSignUpResponse.ALREADY_EXISTS
+            }
             response.body<NewSession>().let { session ->
                 token = session.token
                 _uiState.update {
@@ -252,9 +241,7 @@ public class CIManager: ViewModel() {
             }
 
         } catch (e: Exception) {
-            if (response.status == HttpStatusCode.Conflict) {
-                return SQSignUpResponse.ALREADY_EXISTS
-            }
+
             log.e(msg = {"error signing up: ${e}"})
         }
         return SQSignUpResponse.NO_CONNECTION
@@ -277,8 +264,15 @@ public class CIManager: ViewModel() {
         request.url("$baseURL/users/login")
         request.setBody("")
         request.headers["Authorization"] = "Basic ${Base64.encode("${email.lowercase()}:${password}".encodeToByteArray())}"
-        val response = AppInfo.httpClient.put(request)
+
         try {
+            val response = AppInfo.httpClient.put(request)
+            if (response.status == HttpStatusCode.NotFound) {
+                return SQSignUpResponse.INCORRECT_PASSWORD
+            }
+            if (response.status == HttpStatusCode.Unauthorized) {
+                return SQSignUpResponse.INCORRECT_PASSWORD
+            }
             response.body<NewSession>().let { tokenResponse ->
 //                storeToken(tokenResponse.token)
                 token = tokenResponse.token
@@ -292,12 +286,7 @@ public class CIManager: ViewModel() {
             }
 
         } catch (e: Exception) {
-            if (response.status == HttpStatusCode.NotFound) {
-                return SQSignUpResponse.INCORRECT_PASSWORD
-            }
-            if (response.status == HttpStatusCode.Unauthorized) {
-                return SQSignUpResponse.INCORRECT_PASSWORD
-            }
+
             log.e(msg = { "err signup $e"})
         }
         return SQSignUpResponse.NO_CONNECTION
@@ -311,14 +300,22 @@ public class CIManager: ViewModel() {
         request.url("$baseURL/users/pwresetemail/$email")
         request.setBody("")
 
-        var res = AppInfo.httpClient.post(request)
-        log.d("pwreset") { "${res.status}" }
+        try {
+            var res = AppInfo.httpClient.post(request)
+            log.d("pwreset") { "${res.status}" }
+        } catch (e: Exception) {
+            log.e { "error w password reset $e" }
+        }
     }
-    suspend fun updatePNSToken(token: String) {
+    suspend fun updatePNSToken(pushToken: String) {
             var builder = HttpRequestBuilder()
-            builder.url("$baseURL/users/pushtoken/$token")
+            builder.url("$baseURL/users/pushtoken/$pushToken")
             builder.withToken(token)
-        var res = AppInfo.httpClient.post(builder)
+            try {
+                var res = AppInfo.httpClient.post(builder)
+            } catch (e: Exception) {
+                log.e { "error updating pnstoken $e" }
+            }
     }
 
     suspend fun createFamily(family: CIFamily) {
@@ -327,9 +324,13 @@ public class CIManager: ViewModel() {
         request.withToken(token)
         request.contentType(ContentType.Application.Json)
         request.setBody(family)
-        var res = AppInfo.httpClient.post(request)
-        log.d(tag = "createfam") { res.status.value }
-        refreshData()
+        try {
+            var res = AppInfo.httpClient.post(request)
+            log.d(tag = "createfam") { res.status.value }
+            refreshData()
+        } catch (e: Exception) {
+            log.e { "error creating family: $e" }
+        }
     }
 
     companion object {

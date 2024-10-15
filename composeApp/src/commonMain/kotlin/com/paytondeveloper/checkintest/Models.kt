@@ -42,7 +42,8 @@ data class CISession(
     @Serializable(with = InstantSerializer::class)
     var started: Instant,
     var radius: Double,
-    var distance: Double
+    var distance: Double,
+    var placeName: String?
 )
 
 @Serializable

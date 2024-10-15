@@ -4,10 +4,15 @@ import androidx.compose.runtime.Composable
 
 @Composable
 expect fun MapComponent(
-    pinLat: Float,
-    pinLong: Float,
+    markers: List<CIMapMarker>,
     destLat: Float,
     destLong: Float,
     radius: Double,
-    markerTitle: String
+)
+
+data class CIMapMarker(
+    val lat: Double,
+    val long: Double,
+    val title: String,
+    val subtitle: String
 )

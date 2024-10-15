@@ -17,12 +17,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +36,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,13 +54,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.paytondeveloper.checkintest.CIFamily
+import com.paytondeveloper.checkintest.CIMapMarker
 import com.paytondeveloper.checkintest.CISession
 import com.paytondeveloper.checkintest.ClipboardManager
 import com.paytondeveloper.checkintest.MapComponent
+import com.paytondeveloper.checkintest.bioAuthenticate
 import com.paytondeveloper.checkintest.controllers.CIManager
 import com.paytondeveloper.checkintest.icons.Battery
 import com.paytondeveloper.checkintest.icons.Clock
@@ -69,6 +77,7 @@ import dev.jordond.compass.geocoder.mobile
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDateTime
@@ -89,21 +98,20 @@ fun FamilyView(nav: NavController, family: CIFamily) {
         Column(verticalArrangement = Arrangement.Bottom) {
             if (family.currentSession == null) {
                 MapComponent(
-                    pinLat = 0.0f,
-                    pinLong = 0.0f,
-                    markerTitle = "No Session",
+                    markers = listOf(CIMapMarker(0.0,0.0,"No session", "")),
                     destLong = 0.0f,
                     destLat = 0.0f,
                     radius = 0.0
                 )
             } else {
                 MapComponent(
-                    pinLat = family.currentSession.latitude,
-                    pinLong = family.currentSession.longitude,
+                    markers = listOf(
+                        CIMapMarker(family.currentSession.latitude.toDouble(), family.currentSession.longitude.toDouble(), "${family.currentSession.host.username}'s location", subtitle = "Last Updated ${formatDateTime(family.currentSession.lastUpdate.toLocalDateTime(TimeZone.currentSystemDefault()))}"),
+                        CIMapMarker(family.currentSession.destinationLat.toDouble(), family.currentSession.destinationLong.toDouble(), title = "${family.currentSession.placeName ?: "No name"}", subtitle = "Destination")
+                    ),
                     destLat = family.currentSession.destinationLat,
                     destLong = family.currentSession.destinationLong,
                     radius = family.currentSession.radius,
-                    markerTitle = family.currentSession.host.username
                 )
             }
             Column {
@@ -147,8 +155,12 @@ fun FamilyMainPage(family: CIFamily) {
                 Text("You are currently hosting a Check In.")
                 TextButton(onClick =  {
                     GlobalScope.launch {
-                        CIManager.shared.endSession(family)
-                        CIManager.shared.refreshData()
+                        if (bioAuthenticate()) {
+
+                            CIManager.shared.endSession(family)
+                            CIManager.shared.refreshData()
+
+                        }
                     }
                 }) {
                     Text("End Check In")
@@ -230,62 +242,98 @@ fun FamilyMainPage(family: CIFamily) {
     }
 
     if (showingDestinationSheet) {
+        var selectedPlace by remember { mutableStateOf<Place?>(null) }
+        var selectedRadius by remember { mutableStateOf(200.0) }
+        var loading by remember { mutableStateOf(false) }
         ModalBottomSheet(
             onDismissRequest = {
                 showingDestinationSheet = false
             }
 
         ) {
-            Column(modifier = Modifier.fillMaxHeight(0.5f).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.fillMaxHeight(0.5f).fillMaxWidth().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Set a Destination")
+                val focus = LocalFocusManager.current
                 OutlinedTextField(
                     value = address,
                     onValueChange = {
                         address = it
-                        autocompletePlaces.removeAll({true})
-                        GlobalScope.launch {
-                            var autocomplete = Autocomplete.mobile()
-                            var places = autocomplete.search(address).getOrNull()
-                            places?.let {
-                                withContext(Dispatchers.Main) {
-                                    autocompletePlaces.addAll(it)
+
+                    },
+                    label = { Text("Address or Place Name")},
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            autocompletePlaces.removeAll({true})
+                            GlobalScope.launch {
+                                var autocomplete = Autocomplete.mobile()
+                                var places = autocomplete.search(address).getOrNull()
+                                places?.let {
+                                    withContext(Dispatchers.Main) {
+                                        autocompletePlaces.addAll(it)
+                                        focus.clearFocus(true)
+                                    }
                                 }
                             }
                         }
-                    },
-
+                    )
                 )
+
                 Column(modifier = Modifier.scrollable(rememberScrollState(), orientation = Orientation.Vertical)) {
-                    autocompletePlaces.forEach {
+                    autocompletePlaces.forEach { place ->
                         Surface(
                             onClick = {
-                                val geocoder = Geocoder.mobile()
                                 val log = logging()
-                                log.d { it.firstValue }
+                                log.d { place.firstValue }
+                                selectedPlace = place
 
-                                GlobalScope.launch {
-                                    val coords = geocoder.forward(it.street!!).getOrNull()
-                                    coords?.let {
-                                        CIManager.shared.startSession(family, destLat = it[0].latitude, destLong = it[0].longitude, radius = 200.0)
-                                        CIManager.shared.refreshData()
-                                        withContext(Dispatchers.Main) {
-                                            showingDestinationSheet = false
-                                        }
-                                    }
-                                }
                             }
                         ) {
                             ListItem(
                                 headlineContent = {
-                                    Text("${it.street}")
+                                    Text("${place.street}")
                                 },
                                 supportingContent = {
-                                    Text("${it.administrativeArea} ${it.postalCode}")
+                                    Text("${place.administrativeArea} ${place.postalCode}")
                                 },
                                 leadingContent = {
                                     Icon(Icons.Rounded.LocationOn, contentDescription = "Location")
                                 }
                             )
+                        }
+                    }
+                    selectedPlace?.let { place ->
+                        MapComponent(markers = listOf(CIMapMarker(place.coordinates.latitude, place.coordinates.longitude, title = "Selected Destination", subtitle = "")), destLong = place.coordinates.longitude.toFloat(), destLat = place.coordinates.latitude.toFloat(), radius = selectedRadius)
+                        Slider(value = selectedRadius.toFloat(), onValueChange = {
+                            selectedRadius = it.toDouble()
+                        }, valueRange = 100f..1000f)
+                        Box(contentAlignment = Alignment.Center) {
+                            Button(onClick = {
+                                if (!loading) {
+                                    loading = true
+                                    GlobalScope.launch {
+
+                                        if (bioAuthenticate()){
+                                            val coords = place.coordinates
+                                            CIManager.shared.startSession(family, destLat = coords.latitude, destLong = coords.longitude, radius = selectedRadius, placeName = place.street ?: place.firstValue)
+                                            CIManager.shared.refreshData()
+                                            withContext(Dispatchers.Main) {
+                                                loading = false
+                                                showingDestinationSheet = false
+                                            }
+                                        }
+
+                                    }
+                                }
+                            }, modifier = Modifier.alpha(if (loading) 0.5f else 1.0f).fillMaxWidth()) {
+                                Text("Start Check In")
+                            }
+                            if (loading) {
+                                CircularProgressIndicator()
+                            }
                         }
                     }
                 }
@@ -347,6 +395,19 @@ fun MoreDetailsPage(session: CISession, dismiss: () -> Unit) {
                 Icon(imageVector = Ruler, contentDescription = "Distance")
             }
         )
+        session.placeName?.let {
+            ListItem(
+                headlineContent = {
+                    Text(it)
+                },
+                supportingContent = {
+                    Text("Destination")
+                },
+                leadingContent = {
+                    Icon(imageVector = Icons.Rounded.Home, contentDescription = "Destination")
+                }
+            )
+        }
         ListItem(
             headlineContent = {
                 Text(formatDateTime(session.lastUpdate.toLocalDateTime(TimeZone.currentSystemDefault())))

@@ -59,6 +59,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import checkinapp.composeapp.generated.resources.Res
 import checkinapp.composeapp.generated.resources.compose_multiplatform
 import checkinapp.composeapp.generated.resources.diversity_1
+import com.mmk.kmpnotifier.notification.NotifierManager
 import com.paytondeveloper.checkintest.controllers.CIManager
 import com.paytondeveloper.checkintest.views.AuthView
 import com.paytondeveloper.checkintest.views.FamilyView
@@ -74,6 +75,17 @@ import kotlin.uuid.Uuid
 @Composable
 @Preview
 fun App() {
+    NotifierManager.addListener(object: NotifierManager.Listener {
+        override fun onNewToken(pushToken: String) {
+//                super.onNewToken(pushToken)
+            val log = logging("CIManager")
+            log.d { "pushtoken $pushToken" }
+                AppInfo.settings.putString("pushtoken", pushToken)
+        }
+    })
+    LaunchedEffect(key1 = "") {
+
+    }
     val navController = rememberNavController()
     val viewModel by CIManager.shared.uiState.collectAsState()
     MaterialTheme {
