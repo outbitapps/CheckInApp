@@ -317,10 +317,11 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
         try {
             var running = false
             val workInfoList = statuses.get()
-            for (workInfo in workInfoList) {
-                val state: WorkInfo.State = workInfo.state
-                running = (state == WorkInfo.State.RUNNING) or (state == WorkInfo.State.ENQUEUED)
-            }
+//            for (workInfo in workInfoList) {
+//                val state: WorkInfo.State = workInfo.state
+//                running = (state == WorkInfo.State.RUNNING) or (state == WorkInfo.State.ENQUEUED)
+//            }
+            if (workInfoList.count() > 1) running = true
             return running
         } catch (e: ExecutionException) {
             e.printStackTrace()
