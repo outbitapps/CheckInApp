@@ -110,6 +110,7 @@ class MainActivity : ComponentActivity() {
         }
         val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
             .setInitialDelay(Duration.ofMinutes(5))
+            .addTag("bgwork")
             .build()
         WorkManager.getInstance(applicationContext).enqueue(workRequest)
         setContent {
@@ -236,7 +237,7 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
     Worker(appContext, workerParams) {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun doWork(): Result {
-        if (!isAppOnForeground(context = applicationContext) && !isWorkScheduled("SessionUpdateWorker")) {
+        if (!isAppOnForeground(context = applicationContext) && !isWorkScheduled("bgwork")) {
 
             PrefSingleton.instance.Initialize(applicationContext)
             CIManager.shared
@@ -260,9 +261,10 @@ class UploadWorker(appContext: Context, workerParams: WorkerParameters):
 
         }
         val workRequest = OneTimeWorkRequestBuilder<UploadWorker>()
-            .setInitialDelay(Duration.ofMinutes(2))
+            .setInitialDelay(Duration.ofMinutes(5))
+            .addTag("bgwork")
             .build()
-        WorkManager.getInstance(applicationContext).enqueueUniqueWork("SessionUpdateWorker", ExistingWorkPolicy.REPLACE, workRequest)
+        WorkManager.getInstance(applicationContext).enqueue(workRequest)
         removeNotification()
         return Result.success()
     }
