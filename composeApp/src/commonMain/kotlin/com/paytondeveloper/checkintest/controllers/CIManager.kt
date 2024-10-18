@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.mmk.kmpnotifier.notification.NotifierManager
 import com.paytondeveloper.checkintest.AppInfo
 import com.paytondeveloper.checkintest.CIFamily
+import com.paytondeveloper.checkintest.CILatLong
 import com.paytondeveloper.checkintest.CISession
 import com.paytondeveloper.checkintest.OBUser
 import com.paytondeveloper.checkintest.batteryLevel
@@ -40,7 +41,7 @@ import kotlin.uuid.Uuid
 @OptIn(DelicateCoroutinesApi::class)
 public class CIManager: ViewModel() {
     val log = logging("CIManager")
-    var baseURL = "http://check.paytondev.cloud"
+    var baseURL = "http://192.168.68.107"
     val _uiState = MutableStateFlow(AuthControllerState(user = null))
     val uiState: StateFlow<AuthControllerState> = _uiState.asStateFlow()
     var token: String
@@ -134,7 +135,7 @@ public class CIManager: ViewModel() {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun getSessionData(destLat: Double, destLong: Double, radius: Double, placeName: String?): CISession {
+    suspend fun getSessionData(dest: CILatLong, radius: Double, placeName: String?): CISession {
         val currentBatteryLevel = batteryLevel()
         log.d("batterylevel", {currentBatteryLevel})
         var currentLat = 0.0
@@ -154,21 +155,20 @@ public class CIManager: ViewModel() {
             id = Uuid.random().toString(),
             host = _uiState.value.user!!,
             batteryLevel = currentBatteryLevel,
-            destinationLat = destLat.toFloat(),
-            destinationLong = destLong.toFloat(),
+            destination = dest,
             started = Clock.System.now(),
             lastUpdate = Clock.System.now(),
-            latitude = currentLat.toFloat(),
-            longitude = currentLong.toFloat(),
+            location = CILatLong(longitude = currentLong, latitude = currentLat),
             radius = radius,
             distance = 0.0,
-            placeName = placeName
+            placeName = placeName,
+            history = listOf()
         )
         return session
     }
 
-    suspend fun startSession(family: CIFamily, destLat: Double, destLong: Double, radius: Double, placeName: String?) {
-        val session = getSessionData(destLat, destLong, radius, placeName = placeName)
+    suspend fun startSession(family: CIFamily, dest: CILatLong, radius: Double, placeName: String?) {
+        val session = getSessionData(dest, radius, placeName = placeName)
         var request = HttpRequestBuilder()
         request.url("$baseURL/family/startsession/${family.id}")
         request.contentType(ContentType.Application.Json)
@@ -194,10 +194,11 @@ public class CIManager: ViewModel() {
 
     suspend fun updateSession(family: CIFamily) {
         val oldSession = family.currentSession!!
-        var newSession = getSessionData(oldSession.destinationLat.toDouble(), oldSession.destinationLong.toDouble(), radius = oldSession.radius, placeName = oldSession.placeName)
+        var newSession = getSessionData(oldSession.destination, radius = oldSession.radius, placeName = oldSession.placeName)
         newSession.id = oldSession.id
         newSession.started = oldSession.started
         newSession.distance = oldSession.distance
+        newSession.history = oldSession.history
         var request = HttpRequestBuilder()
         request.url("$baseURL/family/updatesession/${family.id}")
         request.contentType(ContentType.Application.Json)

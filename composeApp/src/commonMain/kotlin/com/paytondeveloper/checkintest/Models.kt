@@ -29,13 +29,23 @@ data class CIFamily(
 )
 
 @Serializable
+data class CILatLong(
+    val latitude: Double,
+    val longitude: Double
+)
+@Serializable
+data class CISessionLocationHistory(
+    val location: CILatLong,
+    @Serializable(with = InstantSerializer::class)
+    val timestamp: Instant
+)
+
+@Serializable
 data class CISession(
     var id: String,
     val host: OBUser,
-    val latitude: Float,
-    val longitude: Float,
-    val destinationLat: Float,
-    val destinationLong: Float,
+    val location: CILatLong,
+    val destination: CILatLong,
     @Serializable(with = InstantSerializer::class)
     val lastUpdate: Instant,
     val batteryLevel: Double,
@@ -43,7 +53,8 @@ data class CISession(
     var started: Instant,
     var radius: Double,
     var distance: Double,
-    var placeName: String?
+    var placeName: String?,
+    var history: List<CISessionLocationHistory>
 )
 
 @Serializable

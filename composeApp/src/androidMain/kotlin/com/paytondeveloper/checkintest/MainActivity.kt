@@ -45,6 +45,7 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.maps.android.compose.Circle
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 import com.mmk.kmpnotifier.extensions.onCreateOrOnNewIntent
@@ -156,8 +157,8 @@ fun AppAndroidPreview() {
 @Composable
 actual fun MapComponent(
     markers: List<CIMapMarker>,
-    destLat: Float,
-    destLong: Float,
+    history: List<CISessionLocationHistory>,
+    dest: CILatLong,
     radius: Double,
 ) {
     Box(
@@ -167,8 +168,8 @@ actual fun MapComponent(
         var firstCoords = markers.first()
         var lastCoords = markers.last()
 
-        var midLat = (firstCoords.lat + lastCoords.lat) / 2
-        var midLong = (firstCoords.long + lastCoords.long) / 2
+        var midLat = (firstCoords.loc.latitude + lastCoords.loc.latitude) / 2
+        var midLong = (firstCoords.loc.longitude + lastCoords.loc.longitude) / 2
 
         val cameraPositionState = rememberCameraPositionState {
             position = CameraPosition.fromLatLngZoom(LatLng(midLat, midLong), 14f)
@@ -181,7 +182,7 @@ actual fun MapComponent(
                 val bounds: LatLngBounds
                     val builder = LatLngBounds.Builder()
                     for (marker in markers) {
-                        builder.include(LatLng(marker.lat, marker.long))
+                        builder.include(LatLng(marker.loc.latitude, marker.loc.longitude))
                     }
                     bounds = builder.build()
 
@@ -196,7 +197,7 @@ actual fun MapComponent(
             }
         ) {
             markers.forEach {
-                val coordinates = LatLng(it.lat, it.long)
+                val coordinates = LatLng(it.loc.latitude, it.loc.longitude)
                 val markerState = rememberMarkerState(position = coordinates)
                 Marker(
                     state = markerState,
@@ -206,11 +207,17 @@ actual fun MapComponent(
                 )
             }
             Circle(
-                center = LatLng(destLat.toDouble(), destLong.toDouble()),
+                center = LatLng(dest.latitude.toDouble(), dest.longitude.toDouble()),
                 radius = radius,
                 fillColor = Color(0.35294f, 0.78431f, 0.98039f, 0.5f),
                 strokeColor = Color(0.35294f, 0.78431f, 0.98039f, 1.0f)
             )
+            var points: MutableList<LatLng> = mutableListOf()
+            history.forEach {
+                Log.d("history", it.toString())
+                points.add(LatLng(it.location.latitude, it.location.longitude))
+            }
+            Polyline(points)
         }
     }
 }

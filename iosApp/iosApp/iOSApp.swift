@@ -67,20 +67,32 @@ struct iOSApp: App {
 
 struct MapsView: View {
     var markers: [CIMapMarker]
-    var destLat: Float
-    var destLong: Float
+    var dest: CILatLong
     var radius: Double
-    
+    var history: [CISessionLocationHistory]
+    var points = [CLLocationCoordinate2D]()
+    init(markers: [CIMapMarker], dest: CILatLong, radius: Double, history: [CISessionLocationHistory]) {
+        self.markers = markers
+        self.dest = dest
+        self.radius = radius
+        self.history = history
+        history.forEach { info in
+            print(info)
+            points.append(CLLocationCoordinate2D(latitude: info.location.latitude, longitude: info.location.longitude))
+        }
+        
+    }
     var body: some View {
             Map {
 //                Marker(markerTitle, coordinate: CLLocationCoordinate2D(latitude: Double(pinLat), longitude: Double(pinLong)))
                 ForEach(markers, id: \.self) { marker in
 //                    Marker(marker.title, monogram: Text(marker.subtitle), coordinate: )
-                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: marker.lat, longitude: marker.long_)) {
+                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: marker.loc.latitude, longitude: marker.loc.longitude)) {
                         MarkerAnnotationView(title: marker.title, subtitle: marker.subtitle)
                     }
                 }
-                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: Double(destLat), longitude: Double(destLong)), radius: CLLocationDistance(Int(radius)))).foregroundStyle(Color.blue.opacity(0.5)).stroke(Color.blue)
+                MapPolyline(coordinates: points).stroke(.blue, lineWidth: 2.0)
+                MapCircle(MKCircle(center: CLLocationCoordinate2D(latitude: dest.latitude, longitude: dest.longitude), radius: CLLocationDistance(Int(radius)))).foregroundStyle(Color.blue.opacity(0.5)).stroke(Color.blue)
             }
     }
 }

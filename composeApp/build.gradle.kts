@@ -71,6 +71,7 @@ kotlin {
             implementation(libs.compass.autocomplete.mobile)
             api(libs.rinku)
             implementation(libs.rinku.compose.ext)
+            implementation(libs.pullrefresh)
         }
     }
 }

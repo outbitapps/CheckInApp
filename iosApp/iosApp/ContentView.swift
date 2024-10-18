@@ -5,8 +5,8 @@ import ComposeApp
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         MainViewControllerKt.MainViewController(
-            mapUIViewController: { (markers: [CIMapMarker], destLat: KotlinFloat, destLong: KotlinFloat, radius: KotlinDouble) -> UIViewController in
-                return UIHostingController(rootView: MapsView(markers: markers, destLat: destLat.floatValue, destLong: destLong.floatValue, radius: radius.doubleValue))
+            mapUIViewController: { (markers: [CIMapMarker], history: [CISessionLocationHistory], dest: CILatLong, radius: KotlinDouble) -> UIViewController in
+                return UIHostingController(rootView: MapsView(markers: markers, dest: dest, radius: radius.doubleValue, history: history))
                         }
         )
     }

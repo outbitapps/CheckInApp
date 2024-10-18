@@ -23,8 +23,8 @@ import kotlin.coroutines.suspendCoroutine
 fun MainViewController(
     mapUIViewController: (
         markers: List<CIMapMarker>,
-        destLat: Float,
-        destLong: Float,
+        history: List<CISessionLocationHistory>,
+        dest: CILatLong,
         radius: Double,
     ) -> UIViewController
 ) = ComposeUIViewController {
@@ -52,8 +52,8 @@ fun MainViewController(
 
 lateinit var mapViewController: (
     markers: List<CIMapMarker>,
-    destLat: Float,
-    destLong: Float,
+    history: List<CISessionLocationHistory>,
+    dest: CILatLong,
     radius: Double,
 ) -> UIViewController
 
@@ -61,13 +61,13 @@ lateinit var mapViewController: (
 @Composable
 actual fun MapComponent(
     markers: List<CIMapMarker>,
-    destLat: Float,
-    destLong: Float,
+    history: List<CISessionLocationHistory>,
+    dest: CILatLong,
     radius: Double,
 ) {
     UIKitViewController(
         factory = {
-            mapViewController(markers, destLat, destLong, radius)
+            mapViewController(markers, history, dest, radius)
         },
         modifier = Modifier.fillMaxHeight(0.5f).fillMaxWidth()
     )

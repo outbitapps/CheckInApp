@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.paytondeveloper.checkintest.CIFamily
+import com.paytondeveloper.checkintest.CILatLong
 import com.paytondeveloper.checkintest.CIMapMarker
 import com.paytondeveloper.checkintest.CISession
 import com.paytondeveloper.checkintest.ClipboardManager
@@ -98,20 +99,20 @@ fun FamilyView(nav: NavController, family: CIFamily) {
         Column(verticalArrangement = Arrangement.Bottom) {
             if (family.currentSession == null) {
                 MapComponent(
-                    markers = listOf(CIMapMarker(0.0,0.0,"No session", "")),
-                    destLong = 0.0f,
-                    destLat = 0.0f,
+                    markers = listOf(CIMapMarker(CILatLong(0.0, 0.0),"No session", "")),
+                    dest = CILatLong(0.0,0.0),
+                    history = listOf(),
                     radius = 0.0
                 )
             } else {
                 MapComponent(
                     markers = listOf(
-                        CIMapMarker(family.currentSession.latitude.toDouble(), family.currentSession.longitude.toDouble(), "${family.currentSession.host.username}'s location", subtitle = "Last Updated ${formatDateTime(family.currentSession.lastUpdate.toLocalDateTime(TimeZone.currentSystemDefault()))}"),
-                        CIMapMarker(family.currentSession.destinationLat.toDouble(), family.currentSession.destinationLong.toDouble(), title = "${family.currentSession.placeName ?: "No name"}", subtitle = "Destination")
+                        CIMapMarker(family.currentSession.location, "${family.currentSession.host.username}'s location", subtitle = "Last Updated ${formatDateTime(family.currentSession.lastUpdate.toLocalDateTime(TimeZone.currentSystemDefault()))}"),
+                        CIMapMarker(family.currentSession.destination, title = "${family.currentSession.placeName ?: "No name"}", subtitle = "Destination")
                     ),
-                    destLat = family.currentSession.destinationLat,
-                    destLong = family.currentSession.destinationLong,
+                    dest = family.currentSession.destination,
                     radius = family.currentSession.radius,
+                    history = family.currentSession.history
                 )
             }
             Column {
@@ -306,7 +307,7 @@ fun FamilyMainPage(family: CIFamily) {
                         }
                     }
                     selectedPlace?.let { place ->
-                        MapComponent(markers = listOf(CIMapMarker(place.coordinates.latitude, place.coordinates.longitude, title = "Selected Destination", subtitle = "")), destLong = place.coordinates.longitude.toFloat(), destLat = place.coordinates.latitude.toFloat(), radius = selectedRadius)
+                        MapComponent(markers = listOf(CIMapMarker(CILatLong(latitude = place.coordinates.latitude, longitude = place.coordinates.longitude), title = "Selected Destination", subtitle = "")), dest = CILatLong(place.coordinates.latitude, place.coordinates.longitude), radius = selectedRadius, history = listOf())
                         Slider(value = selectedRadius.toFloat(), onValueChange = {
                             selectedRadius = it.toDouble()
                         }, valueRange = 100f..1000f)
@@ -318,7 +319,7 @@ fun FamilyMainPage(family: CIFamily) {
 
                                         if (bioAuthenticate()){
                                             val coords = place.coordinates
-                                            CIManager.shared.startSession(family, destLat = coords.latitude, destLong = coords.longitude, radius = selectedRadius, placeName = place.street ?: place.firstValue)
+                                            CIManager.shared.startSession(family, dest = CILatLong(latitude = place.coordinates.latitude, longitude = place.coordinates.longitude), radius = selectedRadius, placeName = place.street ?: place.firstValue)
                                             CIManager.shared.refreshData()
                                             withContext(Dispatchers.Main) {
                                                 loading = false

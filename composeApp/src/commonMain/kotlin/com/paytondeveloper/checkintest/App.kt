@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
@@ -36,6 +37,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,10 +65,14 @@ import com.mmk.kmpnotifier.notification.NotifierManager
 import com.paytondeveloper.checkintest.controllers.CIManager
 import com.paytondeveloper.checkintest.views.AuthView
 import com.paytondeveloper.checkintest.views.FamilyView
+import dev.materii.pullrefresh.PullRefreshLayout
+import dev.materii.pullrefresh.rememberPullRefreshState
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.imageResource
 import org.lighthousegames.logging.logging
 import kotlin.uuid.ExperimentalUuidApi
@@ -75,6 +81,26 @@ import kotlin.uuid.Uuid
 @Composable
 @Preview
 fun App() {
+    LaunchedEffect(true) {
+        CIManager.shared
+        while (CIManager.shared._uiState.value.loading) {
+            //do nothing
+        }
+        GlobalScope.launch {
+            NotifierManager.getPushNotifier().getToken()
+        }
+        var user = CIManager.shared._uiState.value.user
+        CIManager.shared._uiState.value.families.forEach {
+            if (it.currentSession != null && it.currentSession.host.id == user?.id) {
+                GlobalScope.launch {
+                    CIManager.shared.updateSession(it)
+                }
+            }
+        }
+        GlobalScope.launch {
+            CIManager.shared.refreshData()
+        }
+    }
     NotifierManager.addListener(object: NotifierManager.Listener {
         override fun onNewToken(pushToken: String) {
 //                super.onNewToken(pushToken)
@@ -132,6 +158,17 @@ fun MainView(navController: NavHostController) {
 fun HomePage(nav: NavController) {
     val viewModel by CIManager.shared.uiState.collectAsState()
     var showBottomSheet by remember { mutableStateOf(false) }
+    var isRefreshing by remember {
+        mutableStateOf(false)
+    }
+    var pullRefreshState = rememberPullRefreshState(refreshing = isRefreshing, onRefresh = {
+        GlobalScope.launch {
+            CIManager.shared.refreshData()
+            withContext(Dispatchers.Main) {
+                isRefreshing = false
+            }
+        }
+    })
     Scaffold(
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = {
@@ -142,35 +179,44 @@ fun HomePage(nav: NavController) {
                     Text("Make/Join Family")
                 }
             }
+        },
+        topBar = {
+            TopAppBar(
+                title = { Text("Check In", style = MaterialTheme.typography.titleLarge)}
+            )
         }
     ) {
-        Column(modifier = Modifier.scrollable(rememberScrollState(), orientation = Orientation.Vertical).fillMaxHeight()) {
-            viewModel.families.forEach { family ->
-                Surface(onClick = {
-                    nav.navigate("family/${family.id}")
-                }) {
-                    ListItem(
-                        headlineContent = {
-                            Text(family.name, style = MaterialTheme.typography.titleLarge)
-                        },
-                        supportingContent = {
-                            Text("${family.users.count()} members")
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (family.currentSession != null) {
-                                    Box(
-                                        modifier = Modifier.width(24.dp).height(24.dp).background(Brush.radialGradient(listOf(Color.Green, Color.Transparent))).border(0.5.dp, Color.Green, shape = CircleShape).clip(
-                                            CircleShape)
+                PullRefreshLayout(state = pullRefreshState, modifier = Modifier.padding(it).fillMaxHeight()) {
+                    Box(modifier = Modifier.verticalScroll(rememberScrollState()).fillMaxHeight()) {
+                        Column(modifier = Modifier.fillMaxHeight()) {
+                            viewModel.families.forEach { family ->
+                                Surface(onClick = {
+                                    nav.navigate("family/${family.id}")
+                                }) {
+                                    ListItem(
+                                        headlineContent = {
+                                            Text(family.name, style = MaterialTheme.typography.titleLarge)
+                                        },
+                                        supportingContent = {
+                                            Text("${family.users.count()} members")
+                                        },
+                                        trailingContent = {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+                                                if (family.currentSession != null) {
+                                                    Box(
+                                                        modifier = Modifier.width(24.dp).height(24.dp).background(Brush.radialGradient(listOf(Color.Green, Color.Transparent))).border(0.5.dp, Color.Green, shape = CircleShape).clip(
+                                                            CircleShape)
+                                                    )
+                                                }
+                                                Icon(Icons.Rounded.KeyboardArrowRight, contentDescription = "View", modifier = Modifier.alpha(0.5f))
+                                            }
+                                        }
                                     )
                                 }
-                                Icon(Icons.Rounded.KeyboardArrowRight, contentDescription = "View", modifier = Modifier.alpha(0.5f))
                             }
                         }
-                    )
+                    }
                 }
-            }
-        }
     }
     if (showBottomSheet) {
         ModalBottomSheet(modifier = Modifier.fillMaxHeight(), onDismissRequest = {
