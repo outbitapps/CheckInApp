@@ -41,7 +41,7 @@ import kotlin.uuid.Uuid
 @OptIn(DelicateCoroutinesApi::class)
 public class CIManager: ViewModel() {
     val log = logging("CIManager")
-    var baseURL = "http://192.168.68.107"
+    var baseURL = "http://check.paytondev.cloud"
     val _uiState = MutableStateFlow(AuthControllerState(user = null))
     val uiState: StateFlow<AuthControllerState> = _uiState.asStateFlow()
     var token: String
