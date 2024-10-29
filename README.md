@@ -1,19 +1,6 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Server.
+## CheckIn (name WIP)
+CheckInApp aims to recreate the iOS Check In experience (exclusive to iPhone users) for everybody with Kotlin Multiplatform.
 
-* `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - `commonMain` is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    `iosMain` would be the right folder for such calls.
+CheckInApp is very unstable at the moment. For instance, if it cannot connect to the server, it will crash. This is an easy fix, but I just have not gotten around to it yet.
 
-* `/iosApp` contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform, 
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
-
-* `/server` is for the Ktor server application.
-
-* `/shared` is for the code that will be shared between all targets in the project.
-  The most important subfolder is `commonMain`. If preferred, you can add code to the platform-specific folders here too.
-
-
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+Speaking of the server, it is NOT in the `server/` directory. I was initially planning to write the server with Ktor using the built-in template with KMP but I found it sort of complicated, and I have more experience with Swift & Vapor. The server source can be found at [outbitapps/CheckInServer](https://github.com/outbitapps/CheckInServer/). If you do not want to host the server yourself, you can connect to the main instance at [check.paytondev.cloud](). To change the server you're using, change the URL at [controllers/CIManager.kt:44](https://github.com/outbitapps/CheckInApp/blob/main/composeApp/src/commonMain/kotlin/com/paytondeveloper/checkintest/controllers/CIManager.kt#L443) in the baseURL variable
