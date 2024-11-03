@@ -79,6 +79,13 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Composable
+expect fun AppTheme(
+    darkTheme: Boolean,
+    dynamicColor: Boolean,
+    content: @Composable () -> Unit
+)
+
+@Composable
 @Preview
 fun App() {
     LaunchedEffect(true) {
@@ -114,7 +121,7 @@ fun App() {
     }
     val navController = rememberNavController()
     val viewModel by CIManager.shared.uiState.collectAsState()
-    MaterialTheme {
+    AppTheme(dynamicColor = true, darkTheme = false) {
         if (!viewModel.loading) {
             if (viewModel.user == null) {
                 AuthView()
@@ -134,9 +141,14 @@ fun MainView(navController: NavHostController) {
     DeepLinkListener { link ->
         val log = logging()
         log.d { link.data }
-        val token = link.data.replace("checkinapp:///", "")
-        GlobalScope.launch {
-            CIManager.shared.joinFamily(token)
+        if (link.data.contains("open")) {
+            val familyID = link.data.replace("checkinapp://open/", "")
+            navController.navigate("family/$familyID")
+        } else {
+            val token = link.data.replace("checkinapp:///", "")
+            GlobalScope.launch {
+                CIManager.shared.joinFamily(token)
+            }
         }
     }
     val viewModel by CIManager.shared.uiState.collectAsState()

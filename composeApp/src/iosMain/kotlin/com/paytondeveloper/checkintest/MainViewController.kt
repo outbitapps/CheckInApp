@@ -3,6 +3,7 @@ package com.paytondeveloper.checkintest
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitViewController
@@ -96,4 +97,15 @@ actual suspend fun bioAuthenticate(): Boolean = suspendCoroutine { continuation 
         // Biometric authentication not available
         continuation.resume(false)
     }
+}
+@Composable
+actual fun AppTheme(
+    darkTheme: Boolean,
+    dynamicColor: Boolean,
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        content = content
+    )
+
 }

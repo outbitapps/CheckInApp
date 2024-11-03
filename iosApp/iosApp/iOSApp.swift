@@ -3,7 +3,7 @@ import ComposeApp
 import FirebaseCore
 import FirebaseMessaging
 import MapKit
-
+import ActivityKit
 class AppDelegate: NSObject, UIApplicationDelegate {
 
   func application(_ application: UIApplication,
